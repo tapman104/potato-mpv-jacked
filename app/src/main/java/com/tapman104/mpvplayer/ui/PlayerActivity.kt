@@ -89,4 +89,30 @@ class PlayerActivity : ComponentActivity() {
         // Re-hide system UI if another app/dialog temporarily took focus.
         if (hasFocus) hideSystemUI()
     }
+
+    /**
+     * Called when the user presses the Home button.
+     * Auto-enter PiP if a file is currently loaded (status is Playing or Paused).
+     */
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        val status = viewModel.state.value.status
+        val isFileLoaded = status !is com.tapman104.mpvplayer.state.PlayerStatus.Idle
+        if (isFileLoaded) {
+            viewModel.enterPip(this)
+        }
+    }
+
+    /**
+     * Called when the Activity enters or exits PiP mode.
+     * Hide/show controls when entering PiP to keep the video clean.
+     */
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: android.content.res.Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        // System handles the layout change automatically because we declared
+        // screenSize|smallestScreenSize|screenLayout in configChanges.
+    }
 }

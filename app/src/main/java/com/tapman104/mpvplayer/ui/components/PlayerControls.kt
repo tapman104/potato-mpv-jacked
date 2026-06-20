@@ -1,5 +1,6 @@
 package com.tapman104.mpvplayer.ui.components
 
+import androidx.activity.ComponentActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -9,10 +10,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.tapman104.mpvplayer.state.AudioTrack
 import com.tapman104.mpvplayer.state.PlayerStatus
-import com.tapman104.mpvplayer.state.SubtitleTrack
 import com.tapman104.mpvplayer.ui.dialogs.AudioTrackDialog
 import com.tapman104.mpvplayer.ui.dialogs.MoreOptionsDialog
 import com.tapman104.mpvplayer.ui.dialogs.SubtitleTrackDialog
@@ -29,7 +29,7 @@ import kotlinx.coroutines.delay
  */
 @Composable
 fun PlayerControls(viewModel: PlayerViewModel) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     val isPlaying = state.status is PlayerStatus.Playing
@@ -47,10 +47,11 @@ fun PlayerControls(viewModel: PlayerViewModel) {
     val totalTime   = formatMs(state.durationMs)
 
     // ── Controls visibility ──────────────────────────────────────────────────
-    var controlsVisible by remember { mutableStateOf(true) }
-    var showMoreDialog  by remember { mutableStateOf(false) }
-    var showAudioDialog by remember { mutableStateOf(false) }
+    var controlsVisible    by remember { mutableStateOf(true) }
+    var showMoreDialog     by remember { mutableStateOf(false) }
+    var showAudioDialog    by remember { mutableStateOf(false) }
     var showSubtitleDialog by remember { mutableStateOf(false) }
+    var showPlaylistSheet  by remember { mutableStateOf(false) }
 
     // Auto-hide after 3 s when playing (timer resets whenever the key changes).
     LaunchedEffect(isPlaying, controlsVisible) {
@@ -80,10 +81,12 @@ fun PlayerControls(viewModel: PlayerViewModel) {
             TopBar(
                 title = "Now Playing",
                 onBack = {
-                    (context as? androidx.activity.ComponentActivity)?.onBackPressedDispatcher?.onBackPressed()
+                    (context as? ComponentActivity)?.onBackPressedDispatcher?.onBackPressed()
                 },
                 onAudioTrack = { showAudioDialog = true },
                 onSubtitle   = { showSubtitleDialog = true },
+                onQueue      = { showPlaylistSheet = true },
+                onPip        = { viewModel.enterPip(context as ComponentActivity) },
                 onMore       = { showMoreDialog = true }
             )
         }
@@ -112,12 +115,17 @@ fun PlayerControls(viewModel: PlayerViewModel) {
     // ── More-options dialog ──────────────────────────────────────────────────
     if (showMoreDialog) {
         MoreOptionsDialog(
-            onDismiss     = { showMoreDialog = false },
-            onSpeedChange = { viewModel.setPlaybackSpeed(it) },
-            onAspectRatio = { viewModel.setAspectRatio(it) },
-            onSettings    = {
+            currentDecoderMode  = state.decoderMode,
+            onDismiss           = { showMoreDialog = false },
+            onSpeedChange       = { viewModel.setPlaybackSpeed(it) },
+            onAspectRatio       = { viewModel.setAspectRatio(it) },
+            onDecoderModeChange = { viewModel.setDecoderMode(it) },
+            onSettings          = {
                 showMoreDialog = false
-                val intent = android.content.Intent(context, com.tapman104.mpvplayer.settings.SettingsActivity::class.java)
+                val intent = android.content.Intent(
+                    context,
+                    com.tapman104.mpvplayer.settings.SettingsActivity::class.java
+                )
                 context.startActivity(intent)
             }
         )
@@ -125,23 +133,36 @@ fun PlayerControls(viewModel: PlayerViewModel) {
 
     if (showAudioDialog) {
         AudioTrackDialog(
-            tracks = state.audioTracks,
+            tracks          = state.audioTracks,
             selectedTrackId = state.selectedAudioTrackId,
             onTrackSelected = { viewModel.setAudioTrack(it) },
-            onDismiss = { showAudioDialog = false }
+            onDismiss       = { showAudioDialog = false }
         )
     }
 
     if (showSubtitleDialog) {
         SubtitleTrackDialog(
-            tracks          = state.subtitleTracks,
-            selectedTrackId = state.selectedSubtitleTrackId,
-            currentScale    = state.subtitleAppearance.scale,
-            currentColorArgb = state.subtitleAppearance.colorArgb,
-            onTrackSelected = { viewModel.setSubtitleTrack(it) },
-            onScaleChanged  = { viewModel.setSubtitleScale(it) },
-            onColorChanged  = { viewModel.setSubtitleColor(it) },
-            onDismiss       = { showSubtitleDialog = false }
+            tracks                   = state.subtitleTracks,
+            selectedTrackId          = state.selectedSubtitleTrackId,
+            currentScale             = state.subtitleAppearance.scale,
+            currentColorArgb         = state.subtitleAppearance.colorArgb,
+            appearance               = state.subtitleAppearance,
+            onTrackSelected          = { viewModel.setSubtitleTrack(it) },
+            onScaleChanged           = { viewModel.setSubtitleScale(it) },
+            onColorChanged           = { viewModel.setSubtitleColor(it) },
+            onBoldChanged            = { viewModel.setSubtitleBold(it) },
+            onBorderStyleChanged     = { viewModel.setSubtitleBorderStyle(it) },
+            onBorderSizeChanged      = { viewModel.setSubtitleBorderSize(it) },
+            onShadowOffsetChanged    = { viewModel.setSubtitleShadow(it) },
+            onBackgroundAlphaChanged = { viewModel.setSubtitleBackgroundAlpha(it) },
+            onDismiss                = { showSubtitleDialog = false }
+        )
+    }
+
+    if (showPlaylistSheet) {
+        PlaylistSheet(
+            viewModel = viewModel,
+            onDismiss = { showPlaylistSheet = false }
         )
     }
 }
