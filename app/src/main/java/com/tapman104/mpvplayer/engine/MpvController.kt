@@ -38,6 +38,7 @@ class MpvController(private val context: Context) : MPVLib.EventObserver {
             MPVLib.setOptionString("config", "yes")
             MPVLib.setOptionString("config-dir", context.filesDir.path)
             MPVLib.setOptionString("vo", "gpu")
+            MPVLib.setOptionString("gpu-context", "android")
             // Initialise hwdec from the current state so it can be changed before first load.
             MPVLib.setOptionString("hwdec", _state.value.decoderMode.value)
             MPVLib.setOptionString("force-window", "no")
