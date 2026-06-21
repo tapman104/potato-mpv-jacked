@@ -22,6 +22,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _fileName = MutableStateFlow("")
     val fileName: StateFlow<String> = _fileName.asStateFlow()
 
+    private var pendingSurface: Surface? = null
+
     fun initialize() {
         controller.initialize()
     }
@@ -38,6 +40,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
         
         val path = UriResolver.resolve(application, uri)
+        pendingSurface?.let { controller.attachSurface(it) }
         controller.loadFile(path)
         controller.play()
         
@@ -77,10 +80,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun attachSurface(surface: Surface) {
+        pendingSurface = surface
         controller.attachSurface(surface)
     }
 
     fun detachSurface() {
+        pendingSurface = null
         controller.detachSurface()
     }
 
