@@ -1,4 +1,4 @@
-package com.tapman104.mpvplayer.engine
+package com.tapman104.mpvplayer.feature.playlist
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
